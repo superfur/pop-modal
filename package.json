@@ -1,31 +1,26 @@
 {
-  "name": "@septem/pop-modal",
-  "version": "1.0.1",
-  "description": "An iframe communication framework",
-  "main": "lib/index.js",
-  "types": "lib/index.d.ts",
-  "scripts": {
-    "build": "tsc"
-  },
-  "files": [
-    "lib"
-  ],
-  "author": "Septem",
-  "license": "MIT",
-  "devDependencies": {
-    "tslib": "^2.2.0",
-    "typescript": "^4.2.4"
-  },
-  "keywords": [
-    "typescript",
-    "iframe"
-  ],
-  "directories": {
-    "lib": "lib"
-  },
-  "dependencies": {
-    "rollup": "^2.45.2",
-    "rollup-plugin-dts": "^3.0.1",
-    "the-answer": "^1.0.0"
-  }
+    "name": "@septem/pop-modal",
+    "version": "1.0.2",
+    "description": "An iframe communication framework",
+    "main": "lib/index.js",
+    "types": "lib/index.d.ts",
+    "scripts": {
+        "build": "tsc"
+    },
+    "files": [
+        "lib"
+    ],
+    "author": "Septem",
+    "license": "MIT",
+    "devDependencies": {
+        "tslib": "^2.2.0",
+        "typescript": "^4.2.4"
+    },
+    "keywords": [
+        "typescript",
+        "iframe"
+    ],
+    "directories": {
+        "lib": "lib"
+    }
 }
