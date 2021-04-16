@@ -1,0 +1,14 @@
+{
+    "compilerOptions": {
+        "target": "ES2018",
+        "module": "esnext",
+        "declaration": true,
+        "outDir": "lib",
+        "strict": true,
+        "esModuleInterop": true,
+        "pretty": true,
+    },
+    "include": [
+        "src"
+    ]
+}
