@@ -22,5 +22,10 @@
     ],
     "directories": {
         "lib": "lib"
+    },
+    "homepage": "https://github.com/superfur/pop-modal",
+    "repository": {
+        "type": "git",
+        "url": "git@github.com:superfur/pop-modal.git"
     }
 }
