@@ -1,5 +1,8 @@
 # PopModal
 
+## 介绍
+PopModal是一个基于iframe的通信框架，封装了加载iframe期间的生命周期。
+
 ## 组件生命周期
 1. 容器加载完成 EMessage.CONTAINER_LOADED
 2. 页面初始化 EMessage.INIT
