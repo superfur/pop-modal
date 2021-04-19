@@ -27,14 +27,14 @@ export interface ConfigOptions<T = any> {
     data?: T;
 }
 
-export enum EReplacerCode {
+export enum ECommonCode {
     NONE = 0,
     ERROR,
     CANCEL,
 }
 
-export interface ReplacerError {
-    code: EReplacerCode;
+export interface CommonError {
+    code: ECommonCode;
     message?: string;
 }
 

@@ -8,12 +8,12 @@ import {
     ConfigOptions,
     ContainerInfo,
     EMessage,
-    EReplacerCode,
+    ECommonCode,
     EStatus,
-    ReplacerError,
+    CommonError,
 } from './types';
 
-const newError = (code: EReplacerCode, message?: string) => {
+const newError = (code: ECommonCode, message?: string) => {
     return {
         code,
         message,
@@ -25,22 +25,22 @@ const DEFAULT_OPTIONS: Omit<ConfigOptions, 'url' | 'messageChannel'> = {
     timeout: 10000,
 };
 
-export type OpenCallback<T> = (error?: ReplacerError, data?: T) => void;
+export type OpenCallback<T> = (error?: CommonError, data?: T) => void;
 
-const DEFAULT_CALLBACK: OpenCallback<any> = (error: ReplacerError, data?: any) => {
+const DEFAULT_CALLBACK: OpenCallback<any> = (error?: CommonError, data?: any) => {
     // tslint:disable-next-line
     console.log(error || data);
 };
 
 export class PopModal {
     private options?: ConfigOptions;
-    private status: EStatus;
+    private status: EStatus = EStatus.NONE;
     private messageChannel?: MessageChannel;
-    private container: ContainerInfo;
-    private time: number;
+    private container?: ContainerInfo;
+    private time: number = 0;
     private loadTimer: any;
 
-    private editContext: {
+    private editContext?: {
         id: number;
         params: any;
         callback: OpenCallback<any>;
@@ -53,8 +53,6 @@ export class PopModal {
             return;
         }
         this.config(options || {});
-        this.status = EStatus.NONE;
-        this.time = 0;
         this.loadTimer = 0;
         this.initChannel();
 
@@ -95,7 +93,7 @@ export class PopModal {
 
         const oldContext = this.editContext;
         if (oldContext) {
-            oldContext.callback(newError(EReplacerCode.CANCEL, 'Operation canceled'));
+            oldContext.callback(newError(ECommonCode.CANCEL, 'Operation canceled'));
         }
 
         if (callback) {
@@ -103,6 +101,7 @@ export class PopModal {
             // Wrap the callback, avoid the exception rised by callback to interrupt sdk processing.
             callback = function() {
                 try {
+                    // @ts-ignore
                     oldCallback.apply(this, arguments);
                 } catch (e) {
                     // tslint:disable-next-line
@@ -145,7 +144,7 @@ export class PopModal {
         this.hideContainer();
 
         if (trigger && this.editContext) {
-            this.editContext.callback(newError(EReplacerCode.CANCEL, 'Operation canceled'));
+            this.editContext.callback(newError(ECommonCode.CANCEL, 'Operation canceled'));
         }
 
         if (this.options.alwaysNewContainer) {
@@ -296,6 +295,9 @@ export class PopModal {
         if (this.status !== EStatus.LOADING) {
             return;
         }
+        if (!this.container) {
+            return;
+        }
         // Place container to the right position
         this.container.element.style.top = '0';
 
@@ -307,7 +309,7 @@ export class PopModal {
         this.destroyContainer();
         const context = this.editContext;
         if (context) {
-            context.callback(newError(EReplacerCode.ERROR, 'Replacer page loading timeout'));
+            context.callback(newError(ECommonCode.ERROR, 'Common page loading timeout'));
         }
         this.editContext = undefined!;
 
@@ -323,9 +325,9 @@ export class PopModal {
         if (data.type === EMessage.DONE) {
             callback(undefined, data.data);
         } else if (data.type === EMessage.CANCEL) {
-            callback(newError(EReplacerCode.CANCEL, 'Operation canceled'));
+            callback(newError(ECommonCode.CANCEL, 'Operation canceled'));
         } else if (data.type === EMessage.ERROR) {
-            callback(newError(EReplacerCode.ERROR, 'Replacer page returned error'));
+            callback(newError(ECommonCode.ERROR, 'Common page returned error'));
         }
 
         this.hideContainer();
