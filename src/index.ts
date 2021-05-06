@@ -1,5 +1,5 @@
-export * from './PopModal';
-export * from './Message';
-export * from './MessageChannel';
-export * from './types';
-export { default as MessageChannel } from './MessageChannel';
+export * from './pop-modal/PopModal';
+export * from './const/Message';
+export * from './const/types';
+export * from './msg-channel/MsgChannel';
+export { default as MsgChannel } from './msg-channel/MsgChannel';

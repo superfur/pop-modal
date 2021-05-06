@@ -2,18 +2,20 @@ import {
     CancelMessage,
     InitMessage,
     Messages,
-} from './Message';
-import MessageChannel from './MessageChannel';
+} from '../const/Message';
 import {
+    CommonCallback,
     ConfigOptions,
     ContainerInfo,
+    DEFAULT_CALLBACK,
+    ELanguage,
     EMessage,
-    ECommonCode,
+    EMessageCode,
     EStatus,
-    CommonError,
-} from './types';
+} from '../const/types';
+import MsgChannel from '../msg-channel/MsgChannel';
 
-const newError = (code: ECommonCode, message?: string) => {
+const newError = (code: EMessageCode, message?: string) => {
     return {
         code,
         message,
@@ -21,39 +23,31 @@ const newError = (code: ECommonCode, message?: string) => {
 };
 
 const DEFAULT_OPTIONS: Omit<ConfigOptions, 'url' | 'messageChannel'> = {
+    lang: ELanguage.en_US,
     debounce: 3000,
     timeout: 10000,
-};
-
-export type OpenCallback<T> = (error?: CommonError, data?: T) => void;
-
-const DEFAULT_CALLBACK: OpenCallback<any> = (error?: CommonError, data?: any) => {
-    // tslint:disable-next-line
-    console.log(error || data);
 };
 
 export class PopModal {
     private options?: ConfigOptions;
     private status: EStatus = EStatus.NONE;
-    private messageChannel?: MessageChannel;
+    private messageChannel?: MsgChannel;
     private container?: ContainerInfo;
     private time: number = 0;
-    private loadTimer: any;
+    private loadTimer: any = 0;
 
-    private editContext?: {
+    private paramContext?: {
         id: number;
         params: any;
-        callback: OpenCallback<any>;
+        callback: CommonCallback<any>;
     };
 
     constructor(options: ConfigOptions) {
         if (this.options) {
-            // tslint:disable-next-line
             console.error('SDK has initialized!');
             return;
         }
-        this.config(options || {});
-        this.loadTimer = 0;
+        this.config(options);
         this.initChannel();
 
         this.log('SDK initialized!');
@@ -78,9 +72,8 @@ export class PopModal {
         this.log(this.options);
     }
 
-    public open<T, P = any>(params: T, callback: OpenCallback<P>): boolean {
+    public open<T, K = any>(params: T, callback: CommonCallback<K> = DEFAULT_CALLBACK): boolean {
         if (!this.options) {
-            // tslint:disable-next-line
             console.error('SDK has not initialized!');
             return false;
         }
@@ -91,33 +84,30 @@ export class PopModal {
         }
         this.time = now;
 
-        const oldContext = this.editContext;
+        const oldContext = this.paramContext;
         if (oldContext) {
-            oldContext.callback(newError(ECommonCode.CANCEL, 'Operation canceled'));
+            oldContext.callback(newError(EMessageCode.CANCEL, 'Operation canceled'));
         }
 
         if (callback) {
             const oldCallback = callback;
             // Wrap the callback, avoid the exception rised by callback to interrupt sdk processing.
-            callback = function() {
+            callback = function(args: any) {
                 try {
-                    // @ts-ignore
-                    oldCallback.apply(this, arguments);
+                    oldCallback.apply(null, args);
                 } catch (e) {
-                    // tslint:disable-next-line
                     console.error(e);
                 }
             };
         }
 
-        callback = callback || DEFAULT_CALLBACK;
-        this.editContext = {
+        this.paramContext = {
             id: now,
             params,
             callback,
         };
         this.log('Open with context:');
-        this.log(this.editContext);
+        this.log(this.paramContext);
 
         if (this.options.alwaysNewContainer) {
             this.destroyContainer();
@@ -135,7 +125,6 @@ export class PopModal {
 
     public close(trigger: boolean = true) {
         if (!this.options) {
-            // tslint:disable-next-line
             console.error('Container has not initialized!');
             return;
         }
@@ -143,21 +132,25 @@ export class PopModal {
         this.cancel();
         this.hideContainer();
 
-        if (trigger && this.editContext) {
-            this.editContext.callback(newError(ECommonCode.CANCEL, 'Operation canceled'));
+        if (trigger && this.paramContext) {
+            this.paramContext.callback(newError(EMessageCode.CANCEL, 'Operation canceled'));
         }
 
         if (this.options.alwaysNewContainer) {
             this.destroyContainer();
         }
 
-        this.editContext = undefined!;
+        this.paramContext = undefined!;
 
         this.log('Close');
     }
 
+    public getMsgChannel(): MsgChannel | undefined {
+        return this.messageChannel;
+    }
+
     private onMessage = (data: any) => {
-        if (!this.editContext) {
+        if (!this.paramContext) {
             return;
         }
         this.log('Receive message:');
@@ -168,6 +161,7 @@ export class PopModal {
             case EMessage.CONTAINER_LOADED:
                 this.onContainerLoaded();
                 break;
+            case EMessage.NORMAL:
             case EMessage.DONE:
             case EMessage.CANCEL:
             case EMessage.ERROR:
@@ -178,14 +172,14 @@ export class PopModal {
         }
     }
 
-    private sendMessage<T, P, K>(data: Messages<T, P, K>) {
+    private sendMessage(data: Messages) {
         this.log('Send message:');
         this.log(data);
         this.messageChannel?.sendMessage(data);
     }
 
     private initChannel() {
-        this.messageChannel = new MessageChannel({
+        this.messageChannel = new MsgChannel({
             prefix: this.options?.messageChannel || '',
             onMessage: this.onMessage,
             target: () => {
@@ -217,8 +211,6 @@ export class PopModal {
             return;
         }
 
-        // The contaier is placed in a non-visible position at first,
-        // When container is loaded, will be placed in the right position.
         const styles: HTMLStyleElement = document.createElement('style');
         styles.innerHTML = [
             '#__Container {',
@@ -292,13 +284,9 @@ export class PopModal {
 
     private onContainerLoaded<T>() {
         this.stopLoadTimer();
-        if (this.status !== EStatus.LOADING) {
+        if (this.status !== EStatus.LOADING || !this.container) {
             return;
         }
-        if (!this.container) {
-            return;
-        }
-        // Place container to the right position
         this.container.element.style.top = '0';
 
         this.status = EStatus.LOADED;
@@ -307,11 +295,11 @@ export class PopModal {
 
     private onContainerTimeout() {
         this.destroyContainer();
-        const context = this.editContext;
+        const context = this.paramContext;
         if (context) {
-            context.callback(newError(ECommonCode.ERROR, 'Common page loading timeout'));
+            context.callback(newError(EMessageCode.ERROR, 'Replacer page loading timeout'));
         }
-        this.editContext = undefined!;
+        this.paramContext = undefined!;
 
         this.log('Page container timeout!');
 
@@ -320,27 +308,28 @@ export class PopModal {
         }, 100);
     }
 
-    private onMessageCallback<T, K, P>(data: Messages<T, K, P>) {
-        const callback = this.editContext ? this.editContext.callback : DEFAULT_CALLBACK;
-        if (data.type === EMessage.DONE) {
-            callback(undefined, data.data);
-        } else if (data.type === EMessage.CANCEL) {
-            callback(newError(ECommonCode.CANCEL, 'Operation canceled'));
-        } else if (data.type === EMessage.ERROR) {
-            callback(newError(ECommonCode.ERROR, 'Common page returned error'));
+    private onMessageCallback<T, K>(message: Messages<T, K>) {
+        const callback = this.paramContext ? this.paramContext.callback : DEFAULT_CALLBACK;
+        if (message.type === EMessage.DONE || message.type === EMessage.NORMAL) {
+            callback(undefined, message.data);
+            return;
+        } else if (message.type === EMessage.CANCEL) {
+            callback(newError(EMessageCode.CANCEL, 'Operation canceled'));
+        } else if (message.type === EMessage.ERROR) {
+            callback(newError(EMessageCode.ERROR, 'Replacer page returned error'));
         }
 
         this.hideContainer();
-        this.editContext = undefined!;
+        this.paramContext = undefined!;
     }
 
     private initData<T>() {
-        if (!this.editContext) {
+        if (!this.paramContext) {
             return;
         }
 
         const data: any = {
-            ...this.editContext.params
+            ...this.paramContext.params
         };
 
         this.sendMessage({
@@ -351,7 +340,7 @@ export class PopModal {
     }
 
     private cancel() {
-        if (!this.editContext || this.status !== EStatus.LOADED) {
+        if (!this.paramContext || this.status !== EStatus.LOADED) {
             return;
         }
         this.sendMessage({
@@ -383,8 +372,7 @@ export class PopModal {
             return;
         }
 
-        // tslint:disable-next-line
-        console.log('[CONTAINER] ', message);
+        console.log('%c [CONTAINER] ', 'color: red', message);
     }
 }
 

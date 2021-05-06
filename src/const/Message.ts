@@ -1,6 +1,6 @@
 import { EMessage } from './types';
 
-export type Messages<T, K, P = any> = ContainterLoadedMessage | InitMessage<T> | DoneMessage<K> | CancelMessage | ErrorMessage<P>;
+export type Messages<T = any, K = any, P = any, M = any> = ContainterLoadedMessage | InitMessage<T> | NormalMessage<P> | DoneMessage<K> | CancelMessage | ErrorMessage<M>;
 
 export interface BaseMessage {
     type: EMessage;
@@ -12,6 +12,11 @@ export interface ContainterLoadedMessage extends BaseMessage {
 
 export interface InitMessage<T> extends BaseMessage {
     type: EMessage.INIT;
+    data: T;
+}
+
+export interface NormalMessage<T> extends BaseMessage {
+    type: EMessage.NORMAL;
     data: T;
 }
 

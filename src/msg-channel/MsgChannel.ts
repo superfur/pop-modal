@@ -1,4 +1,4 @@
-import { Messages } from './Message';
+import { Messages } from '../const/Message';
 
 export interface ChannelOptions {
     prefix: string;
@@ -14,7 +14,7 @@ interface ObjectMessage {
     data: any;
 }
 
-export default class MessageChannel {
+export default class MsgChannel {
     private prefix: string;
     private options: ChannelOptions;
 
